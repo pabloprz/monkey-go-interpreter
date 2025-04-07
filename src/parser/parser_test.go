@@ -5,6 +5,8 @@ import (
 
 	"monkey/ast"
 	"monkey/lexer"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLetStatements(t *testing.T) {
@@ -95,6 +97,44 @@ func TestReturnStatements(t *testing.T) {
 			t.Errorf("returnStmt.TokenLiteral not 'return'. got %q", returnStmt.TokenLiteral())
 		}
 	}
+}
+
+func TestIdentifierExpression(t *testing.T) {
+	assert := assert.New(t)
+	input := "foobar;"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assert.Equal(1, len(program.Statements), "program has not enough statements")
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement")
+
+	ident, ok := stmt.Expression.(*ast.Identifier)
+	assert.True(ok, "exp not *ast.Identifier")
+	assert.Equal("foobar", ident.Value)
+	assert.Equal("foobar", ident.TokenLiteral())
+}
+
+func TestIntegerLiteralExpression(t *testing.T) {
+	assert := assert.New(t)
+	input := "5;"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assert.Equal(1, len(program.Statements), "program has not enough statements")
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement")
+
+	ident, ok := stmt.Expression.(*ast.IntegerLiteral)
+	assert.True(ok, "exp not *ast.IntegerLiteral")
+	assert.Equal(int64(5), ident.Value)
+	assert.Equal("5", ident.TokenLiteral())
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
