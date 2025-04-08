@@ -82,6 +82,29 @@ func (il *IntegerLiteral) TokenLiteral() string {
 	return il.Token.Literal
 }
 
+type PrefixExpression struct {
+	Right    Expression
+	Operator string
+	Token    token.Token
+}
+
+func (pe *PrefixExpression) expressionNode() {}
+func (pe *PrefixExpression) TokenLiteral() string {
+	return pe.Token.Literal
+}
+
+type InfixExpression struct {
+	Left     Expression
+	Right    Expression
+	Operator string
+	Token    token.Token
+}
+
+func (pe *InfixExpression) expressionNode() {}
+func (pe *InfixExpression) TokenLiteral() string {
+	return pe.Token.Literal
+}
+
 func (p *Program) String() string {
 	var out bytes.Buffer
 
@@ -133,4 +156,27 @@ func (id *Identifier) String() string {
 
 func (il *IntegerLiteral) String() string {
 	return il.Token.Literal
+}
+
+func (pe *PrefixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(pe.Operator)
+	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+
+	return out.String()
+}
+
+func (pe *InfixExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(pe.Left.String())
+	out.WriteString(" " + pe.Operator + " ")
+	out.WriteString(pe.Right.String())
+	out.WriteString(")")
+
+	return out.String()
 }
