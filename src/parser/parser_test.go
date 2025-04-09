@@ -113,10 +113,7 @@ func TestIdentifierExpression(t *testing.T) {
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement")
 
-	ident, ok := stmt.Expression.(*ast.Identifier)
-	assert.True(ok, "exp not *ast.Identifier")
-	assert.Equal("foobar", ident.Value)
-	assert.Equal("foobar", ident.TokenLiteral())
+	testIdentifier(assert, stmt.Expression, "foobar")
 }
 
 func TestIntegerLiteralExpression(t *testing.T) {
@@ -132,18 +129,15 @@ func TestIntegerLiteralExpression(t *testing.T) {
 	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 	assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement")
 
-	ident, ok := stmt.Expression.(*ast.IntegerLiteral)
-	assert.True(ok, "exp not *ast.IntegerLiteral")
-	assert.Equal(int64(5), ident.Value)
-	assert.Equal("5", ident.TokenLiteral())
+	testLiteralExpression(assert, stmt.Expression, int64(5))
 }
 
 func TestParsingPrefixExpression(t *testing.T) {
 	assert := assert.New(t)
 	prefixTests := []struct {
-		input        string
-		operator     string
-		integerValue int64
+		input    string
+		operator string
+		value    interface{}
 	}{
 		{"!5", "!", 5},
 		{"-15", "-", 15},
@@ -156,6 +150,7 @@ func TestParsingPrefixExpression(t *testing.T) {
 		checkParserErrors(t, p)
 
 		assert.Equal(1, len(program.Statements), "program has not enough statements")
+
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement")
 
@@ -163,15 +158,8 @@ func TestParsingPrefixExpression(t *testing.T) {
 		assert.True(ok, "exp not *ast.PrefixExpression")
 		assert.Equal(tt.operator, exp.Operator)
 
-		testIntegerLiteral(assert, exp.Right, tt.integerValue)
+		testLiteralExpression(assert, exp.Right, tt.value)
 	}
-}
-
-func testIntegerLiteral(assert *assert.Assertions, il ast.Expression, value int64) {
-	integ, ok := il.(*ast.IntegerLiteral)
-	assert.True(ok)
-	assert.Equal(value, integ.Value)
-	assert.Equal(fmt.Sprintf("%d", value), integ.TokenLiteral())
 }
 
 func TestParsingInfixExpression(t *testing.T) {
@@ -202,12 +190,7 @@ func TestParsingInfixExpression(t *testing.T) {
 		stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
 		assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement")
 
-		exp, ok := stmt.Expression.(*ast.InfixExpression)
-		assert.True(ok, "exp not ast.InfixExpression")
-
-		testIntegerLiteral(assert, exp.Left, tt.leftValue)
-		assert.Equal(tt.operator, exp.Operator)
-		testIntegerLiteral(assert, exp.Right, tt.rightValue)
+		testInfixExpression(assert, stmt.Expression, tt.leftValue, tt.operator, tt.rightValue)
 	}
 }
 
@@ -276,6 +259,53 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		actual := program.String()
 		assert.Equal(tt.expected, actual)
 	}
+}
+
+func testLiteralExpression(assert *assert.Assertions, exp ast.Expression, expected interface{}) bool {
+	switch v := expected.(type) {
+	case int:
+		return testIntegerLiteral(assert, exp, int64(v))
+	case int64:
+		return testIntegerLiteral(assert, exp, v)
+	case string:
+		return testIdentifier(assert, exp, v)
+	}
+	return false
+}
+
+func testInfixExpression(assert *assert.Assertions, exp ast.Expression, left interface{},
+	operator string, right interface{}) bool {
+
+	opExp, ok := exp.(*ast.InfixExpression)
+	assert.True(ok, "exp is not an ast.InfixExpression. got=%T(%s)", exp, exp)
+
+	if !testLiteralExpression(assert, opExp.Left, left) {
+		return false
+	}
+
+	assert.Equal(operator, opExp.Operator)
+
+	if !testLiteralExpression(assert, opExp.Right, right) {
+		return false
+	}
+
+	return true
+}
+
+func testIdentifier(assert *assert.Assertions, exp ast.Expression, value string) bool {
+	identifier, ok := exp.(*ast.Identifier)
+	assert.True(ok, "exp not *ast.Identifier. got=%T", exp)
+	assert.Equal(value, identifier.Value)
+	assert.Equal(value, identifier.TokenLiteral())
+	return true
+}
+
+func testIntegerLiteral(assert *assert.Assertions, il ast.Expression, value int64) bool {
+	integ, ok := il.(*ast.IntegerLiteral)
+	assert.True(ok, "exp not *ast.IntegerLiteral. got=%T", il)
+	assert.Equal(value, integ.Value)
+	assert.Equal(fmt.Sprintf("%d", value), integ.TokenLiteral())
+	return true
 }
 
 func checkParserErrors(t *testing.T, p *Parser) {
