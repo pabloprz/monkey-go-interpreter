@@ -105,6 +105,16 @@ func (pe *InfixExpression) TokenLiteral() string {
 	return pe.Token.Literal
 }
 
+type Boolean struct {
+	Value bool
+	Token token.Token
+}
+
+func (b *Boolean) expressionNode() {}
+func (b *Boolean) TokenLiteral() string {
+	return b.Token.Literal
+}
+
 func (p *Program) String() string {
 	var out bytes.Buffer
 
@@ -179,4 +189,8 @@ func (pe *InfixExpression) String() string {
 	out.WriteString(")")
 
 	return out.String()
+}
+
+func (b *Boolean) String() string {
+	return b.Token.Literal
 }
