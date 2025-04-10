@@ -72,6 +72,28 @@ func (es *ExpressionStatement) TokenLiteral() string {
 	return es.Token.Literal
 }
 
+type BlockStatement struct {
+	Statements []Statement
+	Token      token.Token
+}
+
+func (bs *BlockStatement) statementNode() {}
+func (bs *BlockStatement) TokenLiteral() string {
+	return bs.Token.Literal
+}
+
+type IfExpression struct {
+	Condition Expression
+	Then      *BlockStatement
+	Else      *BlockStatement
+	Token     token.Token
+}
+
+func (ie *IfExpression) expressionNode() {}
+func (ie *IfExpression) TokenLiteral() string {
+	return ie.Token.Literal
+}
+
 type IntegerLiteral struct {
 	Value int64
 	Token token.Token
@@ -158,6 +180,32 @@ func (es *ExpressionStatement) String() string {
 		return es.Expression.String()
 	}
 	return ""
+}
+
+func (bs *BlockStatement) String() string {
+	var out bytes.Buffer
+
+	for _, stmt := range bs.Statements {
+		out.WriteString(stmt.String())
+	}
+
+	return out.String()
+}
+
+func (ie *IfExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("if")
+	out.WriteString(ie.Condition.String())
+	out.WriteString(" ")
+	out.WriteString(ie.Then.String())
+
+	if ie.Else != nil {
+		out.WriteString("else ")
+		out.WriteString(ie.Else.String())
+	}
+
+	return out.String()
 }
 
 func (id *Identifier) String() string {

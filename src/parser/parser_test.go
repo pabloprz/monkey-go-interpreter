@@ -100,6 +100,62 @@ func TestReturnStatements(t *testing.T) {
 	}
 }
 
+func TestIfExpression(t *testing.T) {
+	assert := assert.New(t)
+	input := `if (x < y) { x }`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assert.Equal(1, len(program.Statements))
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+
+	exp, ok := stmt.Expression.(*ast.IfExpression)
+	assert.True(ok, "stmt.Expression is not ast.IfExpression. got=%T", stmt.Expression)
+
+	testInfixExpression(assert, exp.Condition, "x", "<", "y")
+
+	assert.Equal(1, len(exp.Then.Statements))
+	then, ok := exp.Then.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok)
+	testIdentifier(assert, then.Expression, "x")
+
+	assert.Nil(exp.Else)
+}
+
+func TestIfElseExpression(t *testing.T) {
+	assert := assert.New(t)
+	input := `if (x < y) { x } else { y }`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	assert.Equal(1, len(program.Statements))
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok, "program.Statements[0] is not ast.ExpressionStatement. got=%T", program.Statements[0])
+
+	exp, ok := stmt.Expression.(*ast.IfExpression)
+	assert.True(ok, "stmt.Expression is not ast.IfExpression. got=%T", stmt.Expression)
+
+	testInfixExpression(assert, exp.Condition, "x", "<", "y")
+
+	assert.Equal(1, len(exp.Then.Statements))
+	then, ok := exp.Then.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok)
+	testIdentifier(assert, then.Expression, "x")
+
+	assert.NotNil(exp.Else)
+	alt, ok := exp.Else.Statements[0].(*ast.ExpressionStatement)
+	assert.True(ok)
+	testIdentifier(assert, alt.Expression, "y")
+}
 func TestIdentifierExpression(t *testing.T) {
 	assert := assert.New(t)
 	input := "foobar;"
