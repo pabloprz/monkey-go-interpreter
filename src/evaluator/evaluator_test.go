@@ -63,11 +63,46 @@ func TestEvalBooleanExpression(t *testing.T) {
 		{"(1 < 2) == false", false},
 		{"(1 > 2) == true", false},
 		{"(1 > 2) == false", true},
+		{`"test" == "test"`, true},
+		{`"test" == " test"`, false},
+		{`"12345" == "12345"`, true},
+		{`"test" != "test"`, false},
+		{`"test" != " test"`, true},
 	}
 
 	for _, tt := range tests {
 		evaluated := testEval(tt.input)
 		testBooleanObject(assert, evaluated, tt.expected)
+	}
+}
+
+func TestStringLiteral(t *testing.T) {
+	assert := assert.New(t)
+	input := `"Hello World!"`
+
+	evaluated := testEval(input)
+	str, ok := evaluated.(*object.String)
+	assert.True(ok, "object is not String. got=%T (%+v)", evaluated, evaluated)
+	assert.Equal("Hello World!", str.Value)
+}
+
+func TestStringConcatenation(t *testing.T) {
+	assert := assert.New(t)
+
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{`"Hello" + " " + "World!"`, "Hello World!"},
+		{`"1" * 3`, "111"},
+		{`"abc" * 0"`, ""},
+	}
+
+	for _, tt := range tests {
+		evaluated := testEval(tt.input)
+		str, ok := evaluated.(*object.String)
+		assert.True(ok, "object is not String. got=%T (%+v)", evaluated, evaluated)
+		assert.Equal(tt.expected, str.Value)
 	}
 }
 
@@ -186,6 +221,10 @@ func TestErrorHandling(t *testing.T) {
 			"unknown operator: BOOLEAN + BOOLEAN",
 		},
 		{
+			`"Hello" - "World"`,
+			"unknown operator: STRING - STRING",
+		},
+		{
 			"5; true + false; 5",
 			"unknown operator: BOOLEAN + BOOLEAN",
 		},
@@ -208,6 +247,10 @@ if (10 > 1) {
 		{
 			"foobar",
 			"identifier not found: foobar",
+		},
+		{
+			`"1" * -3`,
+			"negative argument error: STRING * -3",
 		},
 	}
 

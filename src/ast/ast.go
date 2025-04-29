@@ -127,6 +127,16 @@ func (il *IntegerLiteral) TokenLiteral() string {
 	return il.Token.Literal
 }
 
+type StringLiteral struct {
+	Value string
+	Token token.Token
+}
+
+func (sl *StringLiteral) expressionNode() {}
+func (sl *StringLiteral) TokenLiteral() string {
+	return sl.Token.Literal
+}
+
 type PrefixExpression struct {
 	Right    Expression
 	Operator string
@@ -270,6 +280,10 @@ func (id *Identifier) String() string {
 
 func (il *IntegerLiteral) String() string {
 	return il.Token.Literal
+}
+
+func (sl *StringLiteral) String() string {
+	return sl.Token.Literal
 }
 
 func (pe *PrefixExpression) String() string {

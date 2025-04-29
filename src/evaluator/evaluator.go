@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"monkey/ast"
 	"monkey/object"
+	"strings"
 )
 
 var (
@@ -87,6 +88,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 
 	case *ast.Boolean:
 		return nativeBoolToBooleanObject(node.Value)
+
+	case *ast.StringLiteral:
+		return &object.String{Value: node.Value}
 	}
 
 	return nil
@@ -208,6 +212,10 @@ func evalInfixExpression(operator string, left object.Object, right object.Objec
 	switch {
 	case left.Type() == object.INTEGER_OBJ && right.Type() == object.INTEGER_OBJ:
 		return evalIntegerInfixExpression(operator, left.(*object.Integer), right.(*object.Integer))
+	case left.Type() == object.STRING_OBJ && right.Type() == object.STRING_OBJ:
+		return evalStringInfixExpression(operator, left.(*object.String), right.(*object.String))
+	case left.Type() == object.STRING_OBJ && right.Type() == object.INTEGER_OBJ:
+		return evalStringMultiplication(left.(*object.String), right.(*object.Integer))
 	case operator == "==":
 		return nativeBoolToBooleanObject(left == right)
 	case operator == "!=":
@@ -240,6 +248,31 @@ func evalIntegerInfixExpression(operator string, left *object.Integer, right *ob
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalStringInfixExpression(operator string, left *object.String, right *object.String) object.Object {
+	switch operator {
+	case "+":
+		return &object.String{Value: left.Value + right.Value}
+	case "==":
+		return nativeBoolToBooleanObject(left.Value == right.Value)
+	case "!=":
+		return nativeBoolToBooleanObject(left.Value != right.Value)
+	default:
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
+	}
+}
+
+func evalStringMultiplication(str *object.String, int *object.Integer) object.Object {
+	if int.Value < 0 {
+		return newError("negative argument error: %s * %d", str.Type(), int.Value)
+	}
+
+	var res strings.Builder
+	for _ = range int.Value {
+		res.WriteString(str.Value)
+	}
+	return &object.String{Value: res.String()}
 }
 
 func evalIfExpression(ie *ast.IfExpression, env *object.Environment) object.Object {
