@@ -221,6 +221,51 @@ if (10 > 1) {
 	}
 }
 
+func TestFunctionObject(t *testing.T) {
+	assert := assert.New(t)
+	input := "fn(x) { x + 2; };"
+
+	evaluated := testEval(input)
+	fn, ok := evaluated.(*object.Function)
+	assert.True(ok, "evaluated was not a function, got %T(%+v)", evaluated, evaluated)
+
+	assert.Equal(1, len(fn.Parameters))
+	assert.Equal("x", fn.Parameters[0].String())
+	assert.Equal("(x + 2)", fn.Body.String())
+}
+
+func TestFunctionApplication(t *testing.T) {
+	assert := assert.New(t)
+	tests := []struct {
+		input    string
+		expected int64
+	}{
+		{"let identity = fn(x) { x; }; identity(5);", 5},
+		{"let identity = fn(x) { return x; }; identity(5);", 5},
+		{"let double = fn(x) { x * 2; }; double(5);", 10},
+		{"let add = fn(x, y) { x + y; }; add(5, 5);", 10},
+		{"let add = fn(x, y) { x + y; }; add(5 + 5, add(5, 5));", 20},
+		{"fn(x) { x; }(5)", 5},
+	}
+
+	for _, tt := range tests {
+		testIntegerObject(assert, testEval(tt.input), tt.expected)
+	}
+}
+
+func TestClosures(t *testing.T) {
+	assert := assert.New(t)
+	input := `
+let newAdder = fn(x) {
+  fn(y) { x + y };
+};
+
+let addTwo = newAdder(2);
+addTwo(2);
+	`
+	testIntegerObject(assert, testEval(input), 4)
+}
+
 func testEval(input string) object.Object {
 	l := lexer.New(input)
 	p := parser.New(l)
