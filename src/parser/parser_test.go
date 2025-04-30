@@ -381,6 +381,41 @@ func TestParsingInfixExpression(t *testing.T) {
 	}
 }
 
+func TestParsingArrayLiterals(t *testing.T) {
+	assert := assert.New(t)
+	input := "[1, 2 * 2, 3 + 3]"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	array, ok := stmt.Expression.(*ast.ArrayLiteral)
+	assert.True(ok, "exp not ast.ArrayLiteral. got=%T", stmt.Expression)
+	assert.Equal(3, len(array.Elements))
+
+	testIntegerLiteral(assert, array.Elements[0], 1)
+	testInfixExpression(assert, array.Elements[1], 2, "*", 2)
+	testInfixExpression(assert, array.Elements[2], 3, "+", 3)
+}
+
+func TestParsingIndexExpressions(t *testing.T) {
+	assert := assert.New(t)
+	input := "myArray[1 + 1]"
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt, ok := program.Statements[0].(*ast.ExpressionStatement)
+	indexExp, ok := stmt.Expression.(*ast.IndexExpression)
+	assert.True(ok, "exp not *ast.IndexExpression. got=%T", stmt.Expression)
+	testIdentifier(assert, indexExp.Left, "myArray")
+	testInfixExpression(assert, indexExp.Index, 1, "+", 1)
+}
+
 func TestOperatorPrecedenceParsing(t *testing.T) {
 	assert := assert.New(t)
 	tests := []struct {
@@ -482,6 +517,14 @@ func TestOperatorPrecedenceParsing(t *testing.T) {
 		{
 			"add(a + b + c * d / f + g)",
 			"add((((a + b) + ((c * d) / f)) + g))",
+		},
+		{
+			"a * [1, 2, 3, 4][b * c] * d",
+			"((a * ([1, 2, 3, 4][(b * c)])) * d)",
+		},
+		{
+			"add(a * b[2], b[1], 2 * [1, 2][1])",
+			"add((a * (b[2])), (b[1]), (2 * ([1, 2][1])))",
 		},
 	}
 

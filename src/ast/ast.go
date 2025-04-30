@@ -170,6 +170,27 @@ func (b *Boolean) TokenLiteral() string {
 	return b.Token.Literal
 }
 
+type ArrayLiteral struct {
+	Elements []Expression
+	Token    token.Token // the '[' token
+}
+
+func (al *ArrayLiteral) expressionNode() {}
+func (al *ArrayLiteral) TokenLiteral() string {
+	return al.Token.Literal
+}
+
+type IndexExpression struct {
+	Left  Expression
+	Index Expression
+	Token token.Token // the '[' token
+}
+
+func (ie *IndexExpression) expressionNode() {}
+func (ie *IndexExpression) TokenLiteral() string {
+	return ie.Token.Literal
+}
+
 func (p *Program) String() string {
 	var out bytes.Buffer
 
@@ -311,4 +332,31 @@ func (pe *InfixExpression) String() string {
 
 func (b *Boolean) String() string {
 	return b.Token.Literal
+}
+
+func (al *ArrayLiteral) String() string {
+	var out bytes.Buffer
+
+	elements := []string{}
+	for _, el := range al.Elements {
+		elements = append(elements, el.String())
+	}
+
+	out.WriteString("[")
+	out.WriteString(strings.Join(elements, ", "))
+	out.WriteString("]")
+
+	return out.String()
+}
+
+func (ie *IndexExpression) String() string {
+	var out bytes.Buffer
+
+	out.WriteString("(")
+	out.WriteString(ie.Left.String())
+	out.WriteString("[")
+	out.WriteString(ie.Index.String())
+	out.WriteString("])")
+
+	return out.String()
 }
