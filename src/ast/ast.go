@@ -2,6 +2,7 @@ package ast
 
 import (
 	"bytes"
+	"fmt"
 	"monkey/token"
 	"strings"
 )
@@ -191,6 +192,16 @@ func (ie *IndexExpression) TokenLiteral() string {
 	return ie.Token.Literal
 }
 
+type HashLiteral struct {
+	Pairs map[Expression]Expression
+	Token token.Token // the '{' token
+}
+
+func (hl *HashLiteral) expressionNode() {}
+func (hl *HashLiteral) TokenLiteral() string {
+	return hl.Token.Literal
+}
+
 func (p *Program) String() string {
 	var out bytes.Buffer
 
@@ -357,6 +368,21 @@ func (ie *IndexExpression) String() string {
 	out.WriteString("[")
 	out.WriteString(ie.Index.String())
 	out.WriteString("])")
+
+	return out.String()
+}
+
+func (hl *HashLiteral) String() string {
+	var out bytes.Buffer
+
+	pairs := []string{}
+	for key, value := range hl.Pairs {
+		pairs = append(pairs, fmt.Sprintf("%s:%s", key, value))
+	}
+
+	out.WriteString("{")
+	out.WriteString(strings.Join(pairs, ", "))
+	out.WriteString("}")
 
 	return out.String()
 }

@@ -553,6 +553,138 @@ func testLiteralExpression(assert *assert.Assertions, exp ast.Expression, expect
 	return false
 }
 
+func TestParsingHashLiteralsStringKeys(t *testing.T) {
+	assert := assert.New(t)
+	input := `{"one": 1, "two": 2, "three": 3}`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	assert.True(ok, "exp is not ast.HashLiteral. got=%T", stmt.Expression)
+
+	assert.Equal(3, len(hash.Pairs))
+
+	expected := map[string]int64{
+		"one":   1,
+		"two":   2,
+		"three": 3,
+	}
+
+	for key, value := range hash.Pairs {
+		literal, ok := key.(*ast.StringLiteral)
+		assert.True(ok)
+		testIntegerLiteral(assert, value, expected[literal.String()])
+	}
+}
+
+func TestParsingHashLiteralsIntegerKeys(t *testing.T) {
+	assert := assert.New(t)
+	input := `{1: "one", 2: "two", 3: "three"}`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	assert.True(ok, "exp is not ast.HashLiteral. got=%T", stmt.Expression)
+
+	assert.Equal(3, len(hash.Pairs))
+
+	expected := map[int64]string{
+		1: "one",
+		2: "two",
+		3: "three",
+	}
+
+	for key, value := range hash.Pairs {
+		literal, ok := key.(*ast.IntegerLiteral)
+		assert.True(ok)
+		testStringLiteral(assert, value, expected[literal.Value])
+	}
+}
+
+func TestParsingHashLiteralsBooleanKeys(t *testing.T) {
+	assert := assert.New(t)
+	input := `{true: 1, false: 2}`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	assert.True(ok, "exp is not ast.HashLiteral. got=%T", stmt.Expression)
+
+	assert.Equal(2, len(hash.Pairs))
+
+	expected := map[bool]int64{
+		true:  1,
+		false: 2,
+	}
+
+	for key, value := range hash.Pairs {
+		literal, ok := key.(*ast.Boolean)
+		assert.True(ok)
+		testIntegerLiteral(assert, value, expected[literal.Value])
+	}
+}
+
+func testParseEmptyHashLiteral(t *testing.T) {
+	assert := assert.New(t)
+	input := `{}`
+
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	assert.True(ok, "exp is not ast.HashLiteral. got=%T", stmt.Expression)
+	assert.Equal(0, len(hash.Pairs))
+}
+
+func testParsingHashLiteralsWithExpressions(t *testing.T) {
+	assert := assert.New(t)
+	input := `{"one": 0 + 1, "two": 10 - 8, "three": 15 / 5}`
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	checkParserErrors(t, p)
+
+	stmt := program.Statements[0].(*ast.ExpressionStatement)
+	hash, ok := stmt.Expression.(*ast.HashLiteral)
+	assert.True(ok, "stmt is not ast.HashLiteral. got=%T", stmt.Expression)
+	assert.Equal(3, len(hash.Pairs))
+
+	tests := map[string]func(ast.Expression){
+		"one": func(e ast.Expression) {
+			testInfixExpression(assert, e, 0, "+", 1)
+		},
+		"two": func(e ast.Expression) {
+			testInfixExpression(assert, e, 10, "-", 8)
+		},
+		"three": func(e ast.Expression) {
+			testInfixExpression(assert, e, 15, "/", 5)
+		},
+	}
+
+	for key, value := range hash.Pairs {
+		literal, ok := key.(*ast.StringLiteral)
+		assert.True(ok)
+		testFunc, ok := tests[literal.String()]
+		assert.True(ok)
+		testFunc(value)
+	}
+}
+
 func testInfixExpression(assert *assert.Assertions, exp ast.Expression, left interface{},
 	operator string, right interface{}) bool {
 
@@ -593,6 +725,14 @@ func testBooleanLiteral(assert *assert.Assertions, b ast.Expression, value bool)
 	assert.True(ok, "exp not *ast.Boolean. got=%T", b)
 	assert.Equal(value, boolean.Value)
 	assert.Equal(fmt.Sprintf("%t", value), boolean.TokenLiteral())
+	return true
+}
+
+func testStringLiteral(assert *assert.Assertions, l ast.Expression, value string) bool {
+	lit, ok := l.(*ast.StringLiteral)
+	assert.True(ok, "exp not *ast.StringLiteral. got=%T", l)
+	assert.Equal(value, lit.Value)
+	assert.Equal(fmt.Sprintf("%s", value), lit.TokenLiteral())
 	return true
 }
 

@@ -84,6 +84,9 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 		return &object.Array{Elements: elements}
 
+	case *ast.HashLiteral:
+		return evalHashLiteral(node, env)
+
 	case *ast.IndexExpression:
 		left := Eval(node.Left, env)
 		if isError(left) {
@@ -199,6 +202,8 @@ func evalIndexExpression(left, index object.Object) object.Object {
 	switch {
 	case left.Type() == object.ARRAY_OBJ && index.Type() == object.INTEGER_OBJ:
 		return evalArrayIndexExpression(left.(*object.Array), index.(*object.Integer).Value)
+	case left.Type() == object.HASH_OBJ:
+		return evalHashIndexExpression(left.(*object.Hash), index)
 	default:
 		return newError("index operator not supported: %s", left.Type())
 	}
@@ -210,6 +215,20 @@ func evalArrayIndexExpression(array *object.Array, index int64) object.Object {
 	}
 
 	return array.Elements[index]
+}
+
+func evalHashIndexExpression(hash *object.Hash, index object.Object) object.Object {
+	key, ok := index.(object.HashTable)
+	if !ok {
+		return newError("unusable as hash key: %s", index.Type())
+	}
+
+	pair, ok := hash.Pairs[key.HashKey()]
+	if !ok {
+		return NULL
+	}
+
+	return pair.Value
 }
 
 func evalPrefixExpression(operator string, right object.Object) object.Object {
@@ -262,6 +281,32 @@ func evalInfixExpression(operator string, left object.Object, right object.Objec
 	default:
 		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
+}
+
+func evalHashLiteral(node *ast.HashLiteral, env *object.Environment) object.Object {
+	pairs := make(map[object.HashKey]object.HashPair)
+
+	for keyNode, valueNode := range node.Pairs {
+		key := Eval(keyNode, env)
+		if isError(key) {
+			return key
+		}
+
+		hashKey, ok := key.(object.HashTable)
+		if !ok {
+			return newError("unusable as hash key: %s", key.Type())
+		}
+
+		value := Eval(valueNode, env)
+		if isError(value) {
+			return value
+		}
+
+		hashed := hashKey.HashKey()
+		pairs[hashed] = object.HashPair{Key: key, Value: value}
+	}
+
+	return &object.Hash{Pairs: pairs}
 }
 
 func evalIntegerInfixExpression(operator string, left *object.Integer, right *object.Integer) object.Object {
