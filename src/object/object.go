@@ -21,6 +21,7 @@ const (
 	STRING_OBJ       = "STRING"
 	ARRAY_OBJ        = "ARRAY"
 	ERROR_OBJ        = "ERROR"
+	QUOTE_OBJ        = "QUOTE"
 	HASH_OBJ         = "HASH"
 	NULL_OBJ         = "NULL"
 )
@@ -190,6 +191,18 @@ func (f *Function) Inspect() string {
 	out.WriteString("\n}")
 
 	return out.String()
+}
+
+type Quote struct {
+	Node ast.Node
+}
+
+func (q *Quote) Type() ObjectType {
+	return QUOTE_OBJ
+}
+
+func (q *Quote) Inspect() string {
+	return fmt.Sprintf("QUOTE(%s)", q.Node.String())
 }
 
 func (b *Boolean) HashKey() HashKey {
